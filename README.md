@@ -167,6 +167,42 @@ O `ProposalService` chama `historicoWorker.registerSync()` diretamente na mesma 
 
 Em produção, faria sentido extrair um componente dedicado (ex.: `HistoricoRegistrar`) para o registro síncrono e manter o `HistoricoWorker` apenas como consumer Kafka — respeitando melhor o **Single Responsibility**. Para esta POC, o trade-off foi **aceitável e consciente**: priorizamos clareza do fluxo ponta a ponta e entrega do desafio sem over-engineering.
 
+## Trade-offs conscientes — performance e observabilidade
+
+Esta POC **prioriza demonstrar o fluxo de negócio e a arquitetura alvo** (Strategy + Postgres + Kafka + workers + dashboard). Itens de performance e observabilidade de produção foram **deliberadamente deixados de fora** ou mantidos no mínimo funcional — não por desconhecimento, mas para **não inflar o escopo** sem valor imediato para o avaliador.
+
+### O que está implementado (baseline)
+
+| Área | O que a POC já entrega |
+|------|------------------------|
+| Observabilidade | Actuator (`/health`, `/info`, `/metrics`), logs Spring Kafka, dashboard com fluxo de execução e tela **Filas / Kafka** |
+| Resiliência Kafka | Producer com `acks: all` e idempotência; `DefaultErrorHandler` com backoff nos consumers |
+| Consistência | Publicação pós-commit (`AfterCommitExecutor`); idempotência nos workers |
+| API | `open-in-view: false` (evita queries lazy fora de transação) |
+
+### O que **não** aplicamos (e como estender)
+
+| Área | Trade-off na POC | Por que não agora | Extensão sugerida em produção |
+|------|------------------|-------------------|-------------------------------|
+| **Métricas** | `/metrics` exposto, sem stack de monitoramento | Suficiente para health check e demo local | Prometheus + Grafana; dashboards de lag Kafka, taxa de aprovação/rejeição, latência p95 |
+| **Tracing distribuído** | Sem `traceId`/`spanId` entre API → Kafka → workers | Complexidade de correlação ponta a ponta fora do escopo da POC | OpenTelemetry + Jaeger/Tempo; propagar correlation ID no `ProposalEventDTO` |
+| **Logs estruturados** | Logs padrão SLF4J | Legível em dev; não há agregador | JSON logging (Logback) + ELK/Datadog; MDC com `proposalId` em toda a cadeia |
+| **Kafka — escala** | Tópico com **1 partição** e **1 réplica** | Volume de demo não exige particionamento | Aumentar partições por throughput; replicação ≥ 3; consumer concurrency configurável |
+| **Dead Letter Queue (DLQ)** | Falhas de consumer com retry limitado, sem tópico de poison pill | Poucos eventos na POC; falhas visíveis nos logs | Tópico `proposals.events.dlq` + alerta + reprocessamento manual/automático |
+| **Cache de leitura** | Listagens (`propostas`, `historico`, `emails`) sempre no Postgres | Dados mudam com polling; cache adiciona invalidação | Redis para consultas frequentes; TTL curto ou cache-aside por `proposalId` |
+| **Frontend — atualização** | Polling a cada **3s** nas telas de lista e filas | Simples, previsível, fácil de testar | WebSocket/SSE para push de status do fluxo de execução; reduz carga na API |
+| **Pool e tuning JDBC** | Pool HikariCP com defaults do Spring Boot | Carga local baixa | Tuning de `maximum-pool-size`, timeouts e índices conforme volume real |
+| **Rate limiting / circuit breaker** | Sem Resilience4j na API | Não há integração externa real além do mock de cartões | Rate limit por cliente; circuit breaker se o microsserviço de cartões for real |
+| **Testes de carga** | Testes unitários + JaCoCo (≥ 60%) | Foco em correção funcional e cobertura | k6/Gatling para validar throughput do POST + consumo Kafka sob stress |
+
+### Por que documentar esses trade-offs
+
+Deixar explícito **o que foi cortado** mostra que a arquitetura atual é um **degrau intencional** — não o estado final. Para uma entrevista ou avaliação BTG, isso comunica:
+
+1. **Consciência de produção** — sabemos o que falta para escalar e operar em ambiente real.
+2. **Priorização** — entregamos primeiro o que o desafio pede (regras, persistência, mensageria, rastreio).
+3. **Roadmap claro** — cada item acima tem caminho de evolução sem refatorar o núcleo da solução.
+
 ## Regras de Elegibilidade
 
 | Regra | Condição |
