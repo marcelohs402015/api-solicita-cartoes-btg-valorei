@@ -19,6 +19,14 @@ Repositório: [api-solicita-cartoes-btg-valorei](https://github.com/marcelohs402
 
 ## Arquitetura
 
+### Visão alvo (BTG)
+
+Fluxo de solicitação de cartão de crédito — referência do desafio técnico:
+
+![Fluxo de Solicitação de Cartão de Crédito](docs/desenho-arch.png)
+
+### Implementação desta POC
+
 ```mermaid
 flowchart LR
     subgraph frontend [Frontend React]
