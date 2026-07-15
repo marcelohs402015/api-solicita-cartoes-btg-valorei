@@ -14,6 +14,7 @@ import com.btg.proposals.repository.HistoricoRepository;
 import com.btg.proposals.repository.PropostaRepository;
 import com.btg.proposals.rule.EligibilityRule;
 import com.btg.proposals.rule.OfferFinancialEligibilityRule;
+import com.btg.proposals.support.AfterCommitExecutor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,12 +26,15 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -52,10 +56,21 @@ class ProposalServiceTest {
     @Mock
     private HistoricoRepository historicoRepository;
 
+    @Mock
+    private AfterCommitExecutor afterCommitExecutor;
+
     private ProposalService proposalService;
 
     @BeforeEach
     void setUp() {
+        lenient().doAnswer(invocation -> {
+            Runnable action = invocation.getArgument(0);
+            action.run();
+            return null;
+        }).when(afterCommitExecutor).runAfterCommit(any(Runnable.class));
+
+        lenient().when(eventPublisher.publish(any())).thenReturn(CompletableFuture.completedFuture(null));
+
         List<EligibilityRule> rules = List.of(new OfferFinancialEligibilityRule());
         proposalService = new ProposalService(
                 rules,
@@ -63,7 +78,8 @@ class ProposalServiceTest {
                 propostaRepository,
                 historicoWorker,
                 emailDisparoRepository,
-                historicoRepository
+                historicoRepository,
+                afterCommitExecutor
         );
     }
 

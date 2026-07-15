@@ -66,6 +66,27 @@ class EmailWorkerTest {
     }
 
     @Test
+    void shouldSkipDuplicateEmailForSameProposal() {
+        UUID proposalId = UUID.randomUUID();
+        ProposalEventDTO event = ProposalEventDTO.builder()
+                .eventId(UUID.randomUUID())
+                .proposalId(proposalId)
+                .status(ProposalStatus.APPROVED)
+                .tipoOferta(OfferType.A)
+                .beneficios(List.of(BenefitType.CASHBACK))
+                .motivosRejeicao(List.of())
+                .timestamp(Instant.now())
+                .build();
+
+        when(emailDisparoRepository.findByPropostaId(proposalId))
+                .thenReturn(Optional.of(EmailDisparoEntity.builder().id(UUID.randomUUID()).build()));
+
+        emailWorker.process(event);
+
+        verify(emailDisparoRepository, never()).save(any());
+    }
+
+    @Test
     void shouldIgnoreRejectedProposal() {
         ProposalEventDTO event = ProposalEventDTO.builder()
                 .proposalId(UUID.randomUUID())

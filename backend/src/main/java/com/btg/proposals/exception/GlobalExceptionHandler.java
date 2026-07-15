@@ -1,6 +1,7 @@
 package com.btg.proposals.exception;
 
 import com.btg.proposals.dto.ErrorResponseDTO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -13,6 +14,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -40,7 +42,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Bad Request")
                 .message("Corpo da requisicao invalido ou malformado")
-                .details(List.of(ex.getMostSpecificCause().getMessage()))
+                .details(List.of())
                 .build();
 
         return ResponseEntity.badRequest().body(body);
@@ -53,7 +55,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Bad Request")
                 .message("Parametro invalido: " + ex.getName())
-                .details(List.of(ex.getMessage()))
+                .details(List.of())
                 .build();
 
         return ResponseEntity.badRequest().body(body);
@@ -74,12 +76,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> handleGeneric(Exception ex) {
+        log.error("Erro interno no processamento da requisicao", ex);
+
         ErrorResponseDTO body = ErrorResponseDTO.builder()
                 .timestamp(Instant.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error("Internal Server Error")
                 .message("Erro interno no processamento da requisicao")
-                .details(List.of(ex.getMessage()))
+                .details(List.of())
                 .build();
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);

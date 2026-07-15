@@ -12,4 +12,8 @@ public interface HistoricoRepository extends JpaRepository<HistoricoEntity, UUID
     List<HistoricoEntity> findAllByOrderByCriadoEmDesc(Pageable pageable);
 
     List<HistoricoEntity> findByPropostaIdOrderByCriadoEmAsc(UUID propostaId);
+
+    long countByEvento(String evento);
+
+    boolean existsBySourceEventId(UUID sourceEventId);
 }

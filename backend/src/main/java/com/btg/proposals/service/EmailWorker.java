@@ -33,7 +33,12 @@ public class EmailWorker {
     @KafkaListener(topics = "${app.kafka.topic}", groupId = GROUP_ID)
     @Transactional
     public void process(ProposalEventDTO event) {
-        if (event.getStatus() != ProposalStatus.APPROVED) {
+        if (!isValidEvent(event) || event.getStatus() != ProposalStatus.APPROVED) {
+            return;
+        }
+
+        if (emailDisparoRepository.findByPropostaId(event.getProposalId()).isPresent()) {
+            log.info("Worker Email: proposta {} ja possui email", event.getProposalId());
             return;
         }
 
@@ -66,6 +71,13 @@ public class EmailWorker {
                 .orElseThrow(() -> new IllegalArgumentException("Email nao encontrado"));
     }
 
+    private boolean isValidEvent(ProposalEventDTO event) {
+        return event != null
+                && event.getProposalId() != null
+                && event.getStatus() != null
+                && event.getTipoOferta() != null;
+    }
+
     private Map<String, Object> buildTemplate(ProposalEventDTO event) {
         Map<String, Object> template = new HashMap<>();
         template.put("titulo", "Proposta Aprovada - BTG Valorei");
@@ -73,7 +85,7 @@ public class EmailWorker {
         template.put("mensagem", "Sua proposta de cartao de credito foi aprovada com sucesso.");
         template.put("proposalId", event.getProposalId().toString());
         template.put("tipoOferta", event.getTipoOferta().name());
-        template.put("beneficios", event.getBeneficios());
+        template.put("beneficios", event.getBeneficios() != null ? event.getBeneficios() : List.of());
         template.put("rodape", "Este e um email simulado para fins de demonstracao da POC.");
         return template;
     }

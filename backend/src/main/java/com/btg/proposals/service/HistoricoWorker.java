@@ -4,6 +4,7 @@ import com.btg.proposals.config.AppProperties;
 import com.btg.proposals.dto.HistoricoDTO;
 import com.btg.proposals.dto.ProposalEventDTO;
 import com.btg.proposals.model.entity.HistoricoEntity;
+import com.btg.proposals.model.enums.ProposalStatus;
 import com.btg.proposals.repository.HistoricoRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import java.util.UUID;
 public class HistoricoWorker {
 
     private static final String GROUP_ID = "historico-worker-group";
+    private static final String KAFKA_EVENT = "STATUS_ALTERADO_KAFKA";
 
     private final HistoricoRepository historicoRepository;
     private final ObjectMapper objectMapper;
@@ -32,14 +34,25 @@ public class HistoricoWorker {
     @KafkaListener(topics = "${app.kafka.topic}", groupId = GROUP_ID)
     @Transactional
     public void process(ProposalEventDTO event) {
+        if (!isValidEvent(event)) {
+            log.warn("Worker Historico: evento invalido ignorado");
+            return;
+        }
+
+        if (historicoRepository.existsBySourceEventId(event.getEventId())) {
+            log.info("Worker Historico: evento {} ja processado", event.getEventId());
+            return;
+        }
+
         Map<String, Object> payload = objectMapper.convertValue(event, Map.class);
 
         HistoricoEntity entity = HistoricoEntity.builder()
                 .id(UUID.randomUUID())
                 .propostaId(event.getProposalId())
-                .evento("STATUS_ALTERADO_KAFKA")
+                .evento(KAFKA_EVENT)
                 .status(event.getStatus())
                 .payload(payload)
+                .sourceEventId(event.getEventId())
                 .criadoEm(Instant.now())
                 .build();
 
@@ -71,12 +84,19 @@ public class HistoricoWorker {
                 .id(UUID.randomUUID())
                 .propostaId(propostaId)
                 .evento(evento)
-                .status(event != null ? event.getStatus() : null)
+                .status(event != null ? event.getStatus() : ProposalStatus.APPROVED)
                 .payload(payload)
                 .criadoEm(Instant.now())
                 .build();
 
         historicoRepository.save(entity);
+    }
+
+    private boolean isValidEvent(ProposalEventDTO event) {
+        return event != null
+                && event.getProposalId() != null
+                && event.getEventId() != null
+                && event.getStatus() != null;
     }
 
     private HistoricoDTO toDto(HistoricoEntity entity) {

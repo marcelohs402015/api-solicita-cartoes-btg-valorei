@@ -7,6 +7,7 @@ import com.btg.proposals.dto.ProposalEventDTO;
 import com.btg.proposals.dto.ProposalRequestDTO;
 import com.btg.proposals.dto.ProposalResponseDTO;
 import com.btg.proposals.messaging.ProposalEventPublisher;
+import com.btg.proposals.model.entity.HistoricoEntity;
 import com.btg.proposals.model.entity.PropostaEntity;
 import com.btg.proposals.model.enums.ProposalStatus;
 import com.btg.proposals.repository.EmailDisparoRepository;
@@ -14,6 +15,7 @@ import com.btg.proposals.repository.HistoricoRepository;
 import com.btg.proposals.repository.PropostaRepository;
 import com.btg.proposals.rule.EligibilityRule;
 import com.btg.proposals.rule.ProposalContext;
+import com.btg.proposals.support.AfterCommitExecutor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -37,6 +39,7 @@ public class ProposalService {
     private final HistoricoWorker historicoWorker;
     private final EmailDisparoRepository emailDisparoRepository;
     private final HistoricoRepository historicoRepository;
+    private final AfterCommitExecutor afterCommitExecutor;
 
     @Transactional
     public ProposalResponseDTO process(ProposalRequestDTO request) {
@@ -88,10 +91,18 @@ public class ProposalService {
                 .build();
 
         historicoWorker.registerSync(proposalId, "PROPOSTA_PERSISTIDA", event);
-        eventPublisher.publish(event);
-        historicoWorker.registerSync(proposalId, "EVENTO_KAFKA_PUBLICADO", event);
 
-        ProposalResponseDTO response = ProposalResponseDTO.builder()
+        afterCommitExecutor.runAfterCommit(() -> eventPublisher.publish(event)
+                .whenComplete((ignored, ex) -> {
+                    if (ex != null) {
+                        log.error("Falha ao publicar evento Kafka para proposta {}", proposalId, ex);
+                        historicoWorker.registerSync(proposalId, "EVENTO_KAFKA_FALHOU", event);
+                    } else {
+                        historicoWorker.registerSync(proposalId, "EVENTO_KAFKA_PUBLICADO", event);
+                    }
+                }));
+
+        return ProposalResponseDTO.builder()
                 .proposalId(proposalId)
                 .status(status)
                 .motivosRejeicao(proposta.getMotivosRejeicao())
@@ -101,8 +112,6 @@ public class ProposalService {
                         .build())
                 .activatedBenefits(status == ProposalStatus.APPROVED ? request.getBeneficios() : Collections.emptyList())
                 .build();
-
-        return response;
     }
 
     public List<PropostaSummaryDTO> findRecent(int limit) {
@@ -122,14 +131,15 @@ public class ProposalService {
         propostaRepository.findById(propostaId)
                 .orElseThrow(() -> new IllegalArgumentException("Proposta nao encontrada"));
 
+        List<HistoricoEntity> historico = historicoRepository.findByPropostaIdOrderByCriadoEmAsc(propostaId);
+
         List<ExecutionStepDTO> steps = new ArrayList<>();
         steps.add(step("PROPOSTA_RECEBIDA", "DONE", "Payload validado"));
         steps.add(step("REGRAS_ELEGIBILIDADE", "DONE", "Motor Strategy executado"));
         steps.add(step("PERSISTENCIA_POSTGRES", "DONE", "Proposta salva no banco"));
-        steps.add(step("PUBLICACAO_KAFKA", "DONE", "Evento enviado ao topico"));
+        steps.add(step("PUBLICACAO_KAFKA", resolveKafkaPublishStatus(historico), "Evento enviado ao topico"));
 
-        boolean historicoProcessed = historicoRepository.findByPropostaIdOrderByCriadoEmAsc(propostaId)
-                .stream()
+        boolean historicoProcessed = historico.stream()
                 .anyMatch(h -> "STATUS_ALTERADO_KAFKA".equals(h.getEvento()));
         steps.add(step("WORKER_HISTORICO", historicoProcessed ? "DONE" : "PENDING", "Auditoria assincrona"));
 
@@ -140,6 +150,16 @@ public class ProposalService {
                 .proposalId(propostaId.toString())
                 .steps(steps)
                 .build();
+    }
+
+    private String resolveKafkaPublishStatus(List<HistoricoEntity> historico) {
+        if (historico.stream().anyMatch(h -> "EVENTO_KAFKA_FALHOU".equals(h.getEvento()))) {
+            return "FAILED";
+        }
+        if (historico.stream().anyMatch(h -> "EVENTO_KAFKA_PUBLICADO".equals(h.getEvento()))) {
+            return "DONE";
+        }
+        return "PENDING";
     }
 
     private ExecutionStepDTO step(String name, String status, String detail) {

@@ -16,7 +16,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class HistoricoWorkerTest {
@@ -37,6 +40,7 @@ class HistoricoWorkerTest {
     void shouldRegisterSyncHistorico() {
         UUID proposalId = UUID.randomUUID();
         ProposalEventDTO event = ProposalEventDTO.builder()
+                .eventId(UUID.randomUUID())
                 .proposalId(proposalId)
                 .status(ProposalStatus.APPROVED)
                 .timestamp(Instant.now())
@@ -49,5 +53,22 @@ class HistoricoWorkerTest {
         verify(historicoRepository).save(captor.capture());
         assertEquals("PROPOSTA_PERSISTIDA", captor.getValue().getEvento());
         assertEquals(proposalId, captor.getValue().getPropostaId());
+    }
+
+    @Test
+    void shouldSkipDuplicateKafkaEvent() {
+        UUID eventId = UUID.randomUUID();
+        ProposalEventDTO event = ProposalEventDTO.builder()
+                .eventId(eventId)
+                .proposalId(UUID.randomUUID())
+                .status(ProposalStatus.APPROVED)
+                .timestamp(Instant.now())
+                .build();
+
+        when(historicoRepository.existsBySourceEventId(eventId)).thenReturn(true);
+
+        historicoWorker.process(event);
+
+        verify(historicoRepository, never()).save(any());
     }
 }

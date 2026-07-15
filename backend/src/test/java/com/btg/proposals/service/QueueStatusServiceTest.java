@@ -1,6 +1,7 @@
 package com.btg.proposals.service;
 
 import com.btg.proposals.config.AppProperties;
+import com.btg.proposals.repository.EmailDisparoRepository;
 import com.btg.proposals.repository.HistoricoRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,9 @@ class QueueStatusServiceTest {
     @Mock
     private HistoricoRepository historicoRepository;
 
+    @Mock
+    private EmailDisparoRepository emailDisparoRepository;
+
     @InjectMocks
     private QueueStatusService queueStatusService;
 
@@ -28,7 +32,8 @@ class QueueStatusServiceTest {
         AppProperties.Kafka kafka = new AppProperties.Kafka();
         kafka.setTopic("proposals.events");
         when(appProperties.getKafka()).thenReturn(kafka);
-        when(historicoRepository.count()).thenReturn(5L);
+        when(historicoRepository.countByEvento("STATUS_ALTERADO_KAFKA")).thenReturn(5L);
+        when(emailDisparoRepository.count()).thenReturn(2L);
 
         var status = queueStatusService.getStatus();
 
@@ -36,5 +41,20 @@ class QueueStatusServiceTest {
         assertEquals(2, status.getConsumers().size());
         assertEquals(5, status.getRecentMessagesCount());
         assertEquals("ACTIVE", status.getConsumers().getFirst().getStatus());
+        assertEquals("ACTIVE", status.getConsumers().get(1).getStatus());
+    }
+
+    @Test
+    void shouldReturnIdleWhenNoMessagesProcessed() {
+        AppProperties.Kafka kafka = new AppProperties.Kafka();
+        kafka.setTopic("proposals.events");
+        when(appProperties.getKafka()).thenReturn(kafka);
+        when(historicoRepository.countByEvento("STATUS_ALTERADO_KAFKA")).thenReturn(0L);
+        when(emailDisparoRepository.count()).thenReturn(0L);
+
+        var status = queueStatusService.getStatus();
+
+        assertEquals("IDLE", status.getConsumers().getFirst().getStatus());
+        assertEquals("IDLE", status.getConsumers().get(1).getStatus());
     }
 }

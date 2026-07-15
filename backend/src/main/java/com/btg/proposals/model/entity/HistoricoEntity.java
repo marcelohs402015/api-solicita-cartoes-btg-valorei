@@ -47,4 +47,7 @@ public class HistoricoEntity {
 
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
+
+    @Column(name = "source_event_id")
+    private UUID sourceEventId;
 }
