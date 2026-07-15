@@ -339,18 +339,186 @@ docker compose up --build backend -d
 
 | Tela | Conteúdo |
 |------|----------|
-| Nova Proposta | Formulário + resultado + fluxo de execução |
-| Propostas | Tabela PostgreSQL |
-| Histórico | Worker de auditoria |
-| E-mails | Preview JSON do template gerado |
-| Filas / Kafka | Tópico, consumers e link Kafka UI |
+| Nova Proposta | Formulário, resultado com oferta/valores/benefícios aprovados e fluxo de execução |
+| Propostas | Tabela PostgreSQL com renda, investimentos e benefícios ativados |
+| Histórico | Worker de auditoria com oferta e benefícios no payload do evento |
+| E-mails | Lista e preview com oferta e benefícios aprovados no template |
+| Filas / Kafka | Tópico, consumers, eventos processados e link Kafka UI |
 
-## Demonstração
+## Jornada de testes da POC
+
+Roteiro para validar o desafio técnico ponta a ponta: **regras de negócio (Strategy)** → **persistência** → **Kafka** → **workers** → **dashboard**.
+
+**Pré-requisito:** stack rodando (Docker ou local) e login em http://localhost:5173 (`admin` / `admin123`).
+
+### Passo 0 — Conferir saúde da stack
+
+```bash
+curl http://localhost:8080/actuator/health
+docker compose ps
+```
+
+Esperado: `status: UP` e containers `postgres`, `kafka`, `backend`, `frontend` healthy.
+
+---
+
+### Cenário 1 — Aprovação simples (Oferta A + CASHBACK)
+
+Objetivo: validar fluxo feliz completo.
+
+| Campo | Valor |
+|-------|-------|
+| Renda | `5000` |
+| Investimentos | `1000` |
+| Tempo de conta | `1` |
+| Oferta | **A** |
+| Benefícios | **CASHBACK** |
+
+**Ação:** Nova Proposta → Submeter Proposta.
+
+**Validar em cada tela:**
+
+| Onde | O que conferir |
+|------|----------------|
+| Nova Proposta | Status `APPROVED`, oferta A, valores em R$, badge **CASHBACK** em "Benefícios aprovados", conta `CARD-...` |
+| Execução do fluxo | Steps `PUBLICACAO_KAFKA`, `WORKER_HISTORICO` e `WORKER_EMAIL` evoluindo para `DONE` |
+| Propostas | Linha com oferta A, renda R$ 5.000, badge CASHBACK, status verde |
+| Histórico | Eventos `PROPOSTA_PERSISTIDA`, `EVENTO_KAFKA_PUBLICADO`, `STATUS_ALTERADO_KAFKA` com oferta e benefícios |
+| E-mails | E-mail gerado com oferta A e **CASHBACK** no preview |
+| Filas / Kafka | Consumers `ACTIVE`, contador de eventos > 0, eventos no painel inferior |
+
+**Opcional (API):**
+
+```bash
+curl -u admin:admin123 -X POST http://localhost:8080/api/v1/proposals \
+  -H "Content-Type: application/json" \
+  -d "{\"renda\":5000,\"investimentos\":1000,\"tempoContaAnos\":1,\"tipoOferta\":\"A\",\"beneficios\":[\"CASHBACK\"]}"
+```
+
+Resposta esperada: `"status":"APPROVED"` e `"activatedBenefits":["CASHBACK"]`.
+
+---
+
+### Cenário 2 — Rejeição financeira (Oferta B com dados padrão)
+
+Objetivo: validar regra de renda e investimentos.
+
+| Campo | Valor |
+|-------|-------|
+| Renda | `5000` (padrão) |
+| Investimentos | `1000` (padrão) |
+| Tempo de conta | `1` |
+| Oferta | **B** |
+| Benefícios | nenhum |
+
+**Validar:** Status `REJECTED`, motivos de renda e investimentos insuficientes, **sem** e-mail gerado, benefícios solicitados vazios.
+
+---
+
+### Cenário 3 — Aprovação Oferta B + Sala VIP
+
+Objetivo: validar regra financeira B e benefício exclusivo B/C.
+
+| Campo | Valor |
+|-------|-------|
+| Renda | `20000` |
+| Investimentos | `10000` |
+| Tempo de conta | `1` |
+| Oferta | **B** |
+| Benefícios | **SALA_VIP** |
+
+**Validar:** `APPROVED`, badge **SALA_VIP** no resultado, histórico, propostas e e-mail.
+
+---
+
+### Cenário 4 — Aprovação Oferta C + Seguro Viagem
+
+Objetivo: validar regra de tempo de conta e benefício exclusivo da Oferta C.
+
+| Campo | Valor |
+|-------|-------|
+| Renda | `60000` |
+| Investimentos | `1000` |
+| Tempo de conta | `3` |
+| Oferta | **C** |
+| Benefícios | **SEGURO_VIAGEM** (+ opcional **SALA_VIP**) |
+
+**Validar:** `APPROVED` com benefícios corretos em todas as telas.
+
+---
+
+### Cenário 5 — Conflito CASHBACK + PONTOS
+
+Objetivo: validar `BenefitConflictEligibilityRule`.
+
+| Campo | Valor |
+|-------|-------|
+| Renda | `5000` |
+| Oferta | **A** |
+| Benefícios | **CASHBACK** e **PONTOS** (ambos marcados) |
+
+**Validar:** `REJECTED` com mensagem de conflito, benefícios solicitados visíveis, **nenhum** e-mail.
+
+---
+
+### Cenário 6 — Seguro Viagem na Oferta A (regra de oferta)
+
+Objetivo: validar `BenefitOfferEligibilityRule`.
+
+| Campo | Valor |
+|-------|-------|
+| Renda | `5000` |
+| Oferta | **A** |
+| Benefícios | **SEGURO_VIAGEM** |
+
+**Validar:** `REJECTED` — "Beneficio SEGURO_VIAGEM disponivel apenas para Oferta C".
+
+---
+
+### Cenário 7 — Sala VIP na Oferta A
+
+| Campo | Valor |
+|-------|-------|
+| Renda | `5000` |
+| Oferta | **A** |
+| Benefícios | **SALA_VIP** |
+
+**Validar:** `REJECTED` — sala VIP apenas em ofertas B e C.
+
+---
+
+### Cenário 8 — Rastreabilidade Kafka (desenho BTG)
+
+Objetivo: conectar a POC ao diagrama de arquitetura.
+
+1. Submeta o **Cenário 1** (aprovada).
+2. Abra **Filas / Kafka** → confira tópico `proposals.events` e workers.
+3. Abra **Kafka UI** (http://localhost:8090) → tópico `proposals.events` → mensagens.
+4. Em **Histórico**, confira a cadeia:
+   - `PROPOSTA_PERSISTIDA` (sync)
+   - `EVENTO_KAFKA_PUBLICADO` (sync, pós-commit)
+   - `STATUS_ALTERADO_KAFKA` (worker assíncrono)
+5. Em **E-mails**, confira o template com `tipoOferta` e `beneficios` aprovados.
+
+---
+
+### Checklist final da POC
+
+- [ ] Login e menu do dashboard funcionando
+- [ ] Proposta aprovada persiste no Postgres (**Propostas**)
+- [ ] Motor Strategy rejeita cenários inválidos com motivos claros
+- [ ] Benefícios aprovados visíveis no resultado, histórico, propostas e e-mail
+- [ ] Kafka publica evento e workers processam (histórico + e-mail)
+- [ ] Fluxo de execução reflete status real (incluindo Kafka)
+- [ ] Swagger e Actuator acessíveis
+- [ ] Testes automatizados passando (`mvn clean verify` e `npm run test:coverage`)
+
+## Demonstração rápida (5 minutos)
 
 1. Acesse http://localhost:5173 e faça login (`admin` / `admin123`)
-2. Submeta uma proposta aprovada (Oferta A, renda R$ 5.000)
-3. Veja o fluxo de execução com workers
-4. Acesse **Histórico** e **E-mails** para ver os workers
+2. Execute o **Cenário 1** (Oferta A + CASHBACK)
+3. Execute o **Cenário 5** (conflito CASHBACK + PONTOS) para ver rejeição
+4. Navegue por **Propostas**, **Histórico**, **E-mails** e **Filas / Kafka**
 5. Confira o tópico no Kafka UI (http://localhost:8090)
 
 ---

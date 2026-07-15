@@ -45,6 +45,7 @@ describe('PropostasPage', () => {
       expect(screen.getByText('APPROVED')).toBeInTheDocument();
       expect(screen.getByText('REJECTED')).toBeInTheDocument();
       expect(screen.getByText('CARD-1')).toBeInTheDocument();
+      expect(screen.getByText('CASHBACK')).toBeInTheDocument();
     });
   });
 });

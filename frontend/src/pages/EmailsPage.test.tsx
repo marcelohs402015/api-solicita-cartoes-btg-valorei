@@ -16,7 +16,12 @@ describe('EmailsPage', () => {
         propostaId: 'p1',
         destinatario: 'cliente@teste.com',
         assunto: 'Proposta aprovada',
-        templateJson: { titulo: 'Teste' },
+        templateJson: {
+          titulo: 'Teste',
+          tipoOferta: 'A',
+          beneficios: ['CASHBACK'],
+          mensagem: 'Sua proposta foi aprovada.',
+        },
         status: 'DISPARADO',
         criadoEm: new Date().toISOString(),
       },
@@ -27,6 +32,7 @@ describe('EmailsPage', () => {
     render(<EmailsPage />);
     await waitFor(() => {
       expect(screen.getByText('Proposta aprovada')).toBeInTheDocument();
+      expect(screen.getByText('CASHBACK')).toBeInTheDocument();
     });
   });
 });

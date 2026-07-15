@@ -15,7 +15,7 @@ describe('HistoricoPage', () => {
         propostaId: 'p1',
         evento: 'PROPOSTA_PERSISTIDA',
         status: 'APPROVED',
-        payload: {},
+        payload: { tipoOferta: 'A', beneficios: ['CASHBACK', 'PONTOS'] },
         criadoEm: new Date().toISOString(),
       },
     ]);
@@ -25,6 +25,7 @@ describe('HistoricoPage', () => {
     render(<HistoricoPage />);
     await waitFor(() => {
       expect(screen.getByText('PROPOSTA_PERSISTIDA')).toBeInTheDocument();
+      expect(screen.getByText('CASHBACK')).toBeInTheDocument();
     });
   });
 });

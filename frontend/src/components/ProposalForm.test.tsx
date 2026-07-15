@@ -34,6 +34,8 @@ describe('ProposalForm', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Status: APPROVED/)).toBeInTheDocument();
+      expect(screen.getByText('Beneficios aprovados e ativados:')).toBeInTheDocument();
+      expect(screen.getAllByText('CASHBACK').length).toBeGreaterThanOrEqual(2);
     });
 
     await waitFor(
