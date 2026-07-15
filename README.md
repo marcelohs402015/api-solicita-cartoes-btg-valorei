@@ -188,7 +188,6 @@ docker compose ps
 
 ```bash
 cd backend
-mvn clean package -DskipTests
 mvn spring-boot:run
 ```
 
@@ -213,7 +212,7 @@ npm run dev
 
 ### Build sem subir a aplicação
 
-Backend:
+Backend (executa testes antes do empacotamento):
 
 ```bash
 cd backend
@@ -237,10 +236,25 @@ npm run preview
 
 ### Testes
 
+Backend (unitários + relatório JaCoCo, mínimo 60%):
+
 ```bash
 cd backend
-mvn test
+mvn clean verify
 ```
+
+Relatório HTML: `backend/target/site/jacoco/index.html`
+
+Frontend:
+
+```bash
+cd frontend
+npm install
+npm test
+npm run test:coverage
+```
+
+Relatório HTML: `frontend/coverage/index.html`
 
 ## URLs de acesso
 
