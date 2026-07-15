@@ -147,6 +147,26 @@ O frontend **não se conecta diretamente ao Kafka** — consulta a API REST, que
 | Dev local | `localhost:9092` |
 | Rede Docker | `kafka:29092` (dual listener no `docker-compose.yml`) |
 
+### Ponto de atenção — `HistoricoWorker` com dois papéis
+
+O `ProposalService` chama `historicoWorker.registerSync()` diretamente na mesma requisição, enquanto o `HistoricoWorker` também escuta o Kafka de forma assíncrona. Na prática, a classe concentra **dois papéis**:
+
+| Papel | Método | Quando |
+|-------|--------|--------|
+| Registro síncrono na API | `registerSync()` | Durante o `POST /proposals` — eventos `PROPOSTA_PERSISTIDA`, `EVENTO_KAFKA_PUBLICADO` e `EVENTO_KAFKA_FALHOU` |
+| Consumer assíncrono | `@KafkaListener` / `process()` | Após publicação no tópico — evento `STATUS_ALTERADO_KAFKA` |
+
+**Por que fizemos assim nesta POC**
+
+- **Rastreabilidade imediata no dashboard:** o histórico precisa mostrar o que aconteceu *antes* e *depois* do Kafka ainda na mesma jornada do usuário (tela Histórico e fluxo de execução).
+- **Mesmo modelo e mesma tabela:** todos os eventos de auditoria vão para `historico` com o mesmo formato de payload; reutilizar a classe evita duplicar mapeamento (`ObjectMapper`) e queries.
+- **Escopo controlado:** separar em `HistoricoRegistrar` + `HistoricoWorker` adicionaria interfaces e wiring extras sem ganho funcional visível para o avaliador neste estágio.
+- **Testabilidade preservada:** `registerSync()` e `process()` são testados de forma independente nos testes unitários.
+
+**Evolução em um sistema maior**
+
+Em produção, faria sentido extrair um componente dedicado (ex.: `HistoricoRegistrar`) para o registro síncrono e manter o `HistoricoWorker` apenas como consumer Kafka — respeitando melhor o **Single Responsibility**. Para esta POC, o trade-off foi **aceitável e consciente**: priorizamos clareza do fluxo ponta a ponta e entrega do desafio sem over-engineering.
+
 ## Regras de Elegibilidade
 
 | Regra | Condição |
