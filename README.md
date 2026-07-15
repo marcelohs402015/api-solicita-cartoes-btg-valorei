@@ -184,6 +184,14 @@ Aguardar os containers ficarem healthy:
 docker compose ps
 ```
 
+> **Erro comum ao rodar `mvn spring-boot:run`**
+>
+> O backend falha com `Connection refused` se o Postgres (e o Kafka) não estiverem rodando. Suba a infraestrutura **antes** do backend:
+>
+> ```bash
+> docker compose up postgres kafka kafka-ui -d
+> ```
+
 **Passo 2 — Backend (terminal 1):**
 
 ```bash
@@ -313,17 +321,23 @@ curl http://localhost:8080/actuator/health
 
 ## Solução de problemas
 
-**Backend não conecta no Kafka** (`Connection to localhost:9092 could not be established`):
+**Backend não conecta no Kafka** (`Connection refused` ou `UnknownHostException: kafka`):
+
+O Kafka usa dois listeners: `localhost:9092` (dev local) e `kafka:29092` (rede Docker). Recrie o container:
 
 ```bash
-docker compose up kafka kafka-ui -d
+docker compose up kafka kafka-ui -d --force-recreate
 docker compose ps
 ```
 
-**Backend não conecta no Postgres**:
+Depois reinicie o backend (`mvn spring-boot:run`).
+
+**Backend não conecta no Postgres** (`Connection refused` ao subir com `mvn spring-boot:run`):
+
+O Postgres precisa estar rodando antes do backend em dev local. Suba a infraestrutura:
 
 ```bash
-docker compose up postgres -d
+docker compose up postgres kafka kafka-ui -d
 docker compose ps
 ```
 

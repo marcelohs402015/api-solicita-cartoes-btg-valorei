@@ -31,11 +31,40 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
+    });
+
     await user.click(screen.getByRole('button', { name: 'Entrar' }));
 
     await waitFor(() => {
       expect(screen.getByText('Proposals API — Dashboard')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument();
+    });
+  });
+
+  it('should restore dashboard on refresh when session exists', async () => {
+    const { setAuthCredentials } = await import('./services/api');
+    setAuthCredentials('admin', 'admin123');
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Proposals API — Dashboard')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Entrar' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('should stay on login when session exists but API is unavailable', async () => {
+    const { setAuthCredentials } = await import('./services/api');
+    setAuthCredentials('admin', 'admin123');
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
+      expect(screen.queryByText('Proposals API — Dashboard')).not.toBeInTheDocument();
     });
   });
 });

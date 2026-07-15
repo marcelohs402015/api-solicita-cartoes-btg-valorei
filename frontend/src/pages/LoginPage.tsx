@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
+import AuthLoading from '../components/AuthLoading';
 import { useAuth } from '../contexts/AuthContext';
 import { validateLogin } from '../services/api';
 
@@ -8,8 +9,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState('admin123');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { authenticated, authReady, login } = useAuth();
   const navigate = useNavigate();
+
+  if (!authReady) {
+    return <AuthLoading />;
+  }
+
+  if (authenticated) {
+    return <Navigate to="/" replace />;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -29,12 +29,14 @@ describe('LoginPage', () => {
     vi.clearAllMocks();
   });
 
-  it('should render login form', () => {
+  it('should render login form', async () => {
     renderLogin();
 
-    expect(screen.getByText('Proposals API')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
-    expect(screen.getByDisplayValue('admin')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Proposals API')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
+      expect(screen.getByDisplayValue('admin')).toBeInTheDocument();
+    });
   });
 
   it('should show error on invalid credentials', async () => {
@@ -42,6 +44,11 @@ describe('LoginPage', () => {
     vi.mocked(api.validateLogin).mockResolvedValue(false);
 
     renderLogin();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
+    });
+
     await user.click(screen.getByRole('button', { name: 'Entrar' }));
 
     await waitFor(() => {
