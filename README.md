@@ -68,6 +68,85 @@ flowchart LR
     KafkaUI -.-> Kafka
 ```
 
+## Kafka — papel, fluxo e decisão da POC
+
+O Kafka é o **barramento de eventos assíncrono** desta POC. Ele desacopla a resposta síncrona da API do processamento posterior (auditoria e notificação por e-mail), alinhando a implementação ao desenho alvo do desafio BTG.
+
+### Por que Kafka nesta POC?
+
+| Decisão | Racional |
+|---------|----------|
+| Publicar evento **após** persistir no Postgres | Garante que só propostas salvas geram mensagem (`AfterCommitExecutor` — publicação pós-commit da transação) |
+| Resposta imediata ao cliente | A API retorna `APPROVED`/`REJECTED` sem esperar e-mail ou auditoria assíncrona |
+| Dois workers no mesmo tópico | `HistoricoWorker` e `EmailWorker` consomem `proposals.events` em **consumer groups** distintos — cada um processa de forma independente (pub/sub) |
+| Idempotência nos workers | Evita duplicar auditoria (`source_event_id`) e e-mail (checagem por `proposta_id`) em reprocessamentos |
+| Observabilidade ponta a ponta | Dashboard, fluxo de execução e Kafka UI permitem rastrear o evento do publish ao consumo |
+
+### Fluxo de execução
+
+```mermaid
+sequenceDiagram
+    participant UI as Dashboard React
+    participant API as ProposalService
+    participant PG as PostgreSQL
+    participant K as Kafka proposals.events
+    participant HW as HistoricoWorker
+    participant EW as EmailWorker
+
+    UI->>API: POST /api/v1/proposals
+    API->>API: Motor Strategy (elegibilidade)
+    API->>PG: Salva proposta
+    API->>PG: Historico sync (PROPOSTA_PERSISTIDA)
+    API-->>UI: Resposta imediata (APPROVED/REJECTED)
+    Note over API,K: Apos commit da transacao
+    API->>K: Publica ProposalEventDTO
+    K->>HW: Consome evento
+    K->>EW: Consome evento (mesmo topico)
+    HW->>PG: STATUS_ALTERADO_KAFKA (auditoria)
+    EW->>PG: Email mock (somente se APPROVED)
+```
+
+**Ordem das etapas na API (`ProposalService`):**
+
+1. Valida regras de elegibilidade (Strategy)
+2. Persiste a proposta no PostgreSQL
+3. Registra histórico síncrono (`PROPOSTA_PERSISTIDA`)
+4. Retorna resposta ao frontend
+5. **Depois do commit**, publica `ProposalEventDTO` no tópico `proposals.events` (chave = `proposalId`)
+6. Workers consomem o evento de forma assíncrona
+
+### O que cada componente faz
+
+| Etapa | Componente | Responsabilidade |
+|-------|----------|------------------|
+| Publicação | `ProposalEventPublisher` | Envia evento JSON com status, oferta, benefícios e motivos de rejeição |
+| Consumo 1 | `HistoricoWorker` (`historico-worker-group`) | Grava auditoria `STATUS_ALTERADO_KAFKA` no Postgres |
+| Consumo 2 | `EmailWorker` (`email-worker-group`) | Se `APPROVED`, cria registro de e-mail mock no Postgres |
+| Status | `QueueStatusService` | Expõe tópico, consumers e contagem de eventos processados |
+| Rastreio | `GET /proposals/{id}/execution` | Steps `PUBLICACAO_KAFKA`, `WORKER_HISTORICO`, `WORKER_EMAIL` |
+
+### Quem observa o Kafka
+
+| Observador | Como | O que vê |
+|------------|------|----------|
+| **HistoricoWorker** | `@KafkaListener` no backend | Cada evento publicado no tópico |
+| **EmailWorker** | `@KafkaListener` no backend | Cada evento (filtra apenas propostas aprovadas) |
+| **Dashboard — Filas / Kafka** | `GET /api/v1/queues/status` e `GET /api/v1/events` | Tópico, status dos workers, eventos recentes |
+| **Nova Proposta — fluxo de execução** | `GET /api/v1/proposals/{id}/execution` | Evolução dos passos assíncronos após o submit |
+| **Kafka UI** (`http://localhost:8090`) | Interface web do Docker Compose | Mensagens brutas no tópico `proposals.events` |
+| **Logs do backend** | Spring Kafka | Publicação, consumo, falhas e reprocessamento |
+
+O frontend **não se conecta diretamente ao Kafka** — consulta a API REST, que reflete o estado indiretamente via dados persistidos pelos workers.
+
+### Configuração relevante
+
+| Item | Valor |
+|------|-------|
+| Tópico | `proposals.events` (`APP_KAFKA_TOPIC`) |
+| Producer | `acks: all`, idempotência habilitada |
+| Dev local | `localhost:9092` |
+| Rede Docker | `kafka:29092` (dual listener no `docker-compose.yml`) |
+
 ## Regras de Elegibilidade
 
 | Regra | Condição |
