@@ -1,6 +1,7 @@
 package com.btg.proposals.service;
 
 import com.btg.proposals.dto.ProposalEventDTO;
+import com.btg.proposals.model.entity.HistoricoEntity;
 import com.btg.proposals.model.enums.ProposalStatus;
 import com.btg.proposals.repository.HistoricoRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,8 +49,7 @@ class HistoricoWorkerTest {
 
         historicoWorker.registerSync(proposalId, "PROPOSTA_PERSISTIDA", event);
 
-        ArgumentCaptor<com.btg.proposals.model.entity.HistoricoEntity> captor =
-                ArgumentCaptor.forClass(com.btg.proposals.model.entity.HistoricoEntity.class);
+        ArgumentCaptor<HistoricoEntity> captor = ArgumentCaptor.forClass(HistoricoEntity.class);
         verify(historicoRepository).save(captor.capture());
         assertEquals("PROPOSTA_PERSISTIDA", captor.getValue().getEvento());
         assertEquals(proposalId, captor.getValue().getPropostaId());

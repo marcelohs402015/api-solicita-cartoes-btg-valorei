@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -111,7 +112,7 @@ class EmailWorkerTest {
                         .propostaId(UUID.randomUUID())
                         .destinatario("a@b.com")
                         .assunto("Assunto")
-                        .templateJson(java.util.Map.of("titulo", "Teste"))
+                        .templateJson(Map.of("titulo", "Teste"))
                         .status(EmailStatus.DISPARADO)
                         .criadoEm(Instant.now())
                         .build()

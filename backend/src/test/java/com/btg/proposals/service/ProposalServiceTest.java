@@ -4,6 +4,7 @@ import com.btg.proposals.dto.ProposalEventDTO;
 import com.btg.proposals.dto.ProposalRequestDTO;
 import com.btg.proposals.dto.ProposalResponseDTO;
 import com.btg.proposals.messaging.ProposalEventPublisher;
+import com.btg.proposals.model.entity.EmailDisparoEntity;
 import com.btg.proposals.model.entity.HistoricoEntity;
 import com.btg.proposals.model.entity.PropostaEntity;
 import com.btg.proposals.model.enums.BenefitType;
@@ -140,7 +141,7 @@ class ProposalServiceTest {
                 HistoricoEntity.builder().evento("STATUS_ALTERADO_KAFKA").build()
         ));
         when(emailDisparoRepository.findByPropostaId(id)).thenReturn(Optional.of(
-                com.btg.proposals.model.entity.EmailDisparoEntity.builder().id(UUID.randomUUID()).build()
+                EmailDisparoEntity.builder().id(UUID.randomUUID()).build()
         ));
 
         var flow = proposalService.getExecutionFlow(id);
