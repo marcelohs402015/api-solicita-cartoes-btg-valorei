@@ -1,4 +1,4 @@
-package com.btg.proposals.dto;
+package com.btg.proposals.dto.common;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

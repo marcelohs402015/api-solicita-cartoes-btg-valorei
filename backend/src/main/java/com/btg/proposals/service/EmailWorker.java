@@ -1,8 +1,8 @@
 package com.btg.proposals.service;
 
 import com.btg.proposals.config.AppProperties;
-import com.btg.proposals.dto.EmailDisparoDTO;
-import com.btg.proposals.dto.ProposalEventDTO;
+import com.btg.proposals.dto.email.EmailDisparoDTO;
+import com.btg.proposals.dto.proposal.ProposalEventDTO;
 import com.btg.proposals.model.entity.EmailDisparoEntity;
 import com.btg.proposals.model.enums.EmailStatus;
 import com.btg.proposals.model.enums.ProposalStatus;

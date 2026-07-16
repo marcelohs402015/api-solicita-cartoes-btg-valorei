@@ -1,6 +1,6 @@
-package com.btg.proposals.dto;
+package com.btg.proposals.dto.historico;
 
-import com.btg.proposals.model.enums.EmailStatus;
+import com.btg.proposals.model.enums.ProposalStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,13 +14,12 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class EmailDisparoDTO {
+public class HistoricoDTO {
 
     private UUID id;
     private UUID propostaId;
-    private String destinatario;
-    private String assunto;
-    private Map<String, Object> templateJson;
-    private EmailStatus status;
+    private String evento;
+    private ProposalStatus status;
+    private Map<String, Object> payload;
     private Instant criadoEm;
 }

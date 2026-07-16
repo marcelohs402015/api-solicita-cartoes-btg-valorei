@@ -1,8 +1,8 @@
 package com.btg.proposals.service;
 
 import com.btg.proposals.config.AppProperties;
-import com.btg.proposals.dto.HistoricoDTO;
-import com.btg.proposals.dto.ProposalEventDTO;
+import com.btg.proposals.dto.historico.HistoricoDTO;
+import com.btg.proposals.dto.proposal.ProposalEventDTO;
 import com.btg.proposals.model.entity.HistoricoEntity;
 import com.btg.proposals.model.enums.ProposalStatus;
 import com.btg.proposals.repository.HistoricoRepository;

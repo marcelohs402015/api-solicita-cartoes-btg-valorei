@@ -1,7 +1,7 @@
 package com.btg.proposals.service;
 
 import com.btg.proposals.config.AppProperties;
-import com.btg.proposals.dto.QueueStatusDTO;
+import com.btg.proposals.dto.queue.QueueStatusDTO;
 import com.btg.proposals.repository.EmailDisparoRepository;
 import com.btg.proposals.repository.HistoricoRepository;
 import lombok.RequiredArgsConstructor;

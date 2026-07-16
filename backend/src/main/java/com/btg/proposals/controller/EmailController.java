@@ -1,6 +1,6 @@
 package com.btg.proposals.controller;
 
-import com.btg.proposals.dto.EmailDisparoDTO;
+import com.btg.proposals.dto.email.EmailDisparoDTO;
 import com.btg.proposals.service.EmailWorker;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

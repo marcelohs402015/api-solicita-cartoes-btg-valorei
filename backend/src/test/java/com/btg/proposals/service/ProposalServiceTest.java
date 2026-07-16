@@ -1,8 +1,8 @@
 package com.btg.proposals.service;
 
-import com.btg.proposals.dto.ProposalEventDTO;
-import com.btg.proposals.dto.ProposalRequestDTO;
-import com.btg.proposals.dto.ProposalResponseDTO;
+import com.btg.proposals.dto.proposal.ProposalEventDTO;
+import com.btg.proposals.dto.proposal.ProposalRequestDTO;
+import com.btg.proposals.dto.proposal.ProposalResponseDTO;
 import com.btg.proposals.messaging.ProposalEventPublisher;
 import com.btg.proposals.model.entity.EmailDisparoEntity;
 import com.btg.proposals.model.entity.HistoricoEntity;
@@ -14,7 +14,7 @@ import com.btg.proposals.repository.EmailDisparoRepository;
 import com.btg.proposals.repository.HistoricoRepository;
 import com.btg.proposals.repository.PropostaRepository;
 import com.btg.proposals.rule.EligibilityRule;
-import com.btg.proposals.rule.OfferFinancialEligibilityRule;
+import com.btg.proposals.rule.impl.OfferFinancialEligibilityRule;
 import com.btg.proposals.support.AfterCommitExecutor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

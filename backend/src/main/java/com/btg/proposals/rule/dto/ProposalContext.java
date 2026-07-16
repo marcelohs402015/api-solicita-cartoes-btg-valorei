@@ -1,4 +1,4 @@
-package com.btg.proposals.rule;
+package com.btg.proposals.rule.dto;
 
 import com.btg.proposals.model.enums.BenefitType;
 import com.btg.proposals.model.enums.OfferType;

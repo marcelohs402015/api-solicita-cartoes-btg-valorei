@@ -1,6 +1,6 @@
 package com.btg.proposals.exception;
 
-import com.btg.proposals.dto.ErrorResponseDTO;
+import com.btg.proposals.dto.common.ErrorResponseDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

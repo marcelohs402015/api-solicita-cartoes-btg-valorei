@@ -1,6 +1,8 @@
-package com.btg.proposals.rule;
+package com.btg.proposals.rule.impl;
 
 import com.btg.proposals.model.enums.OfferType;
+import com.btg.proposals.rule.EligibilityRule;
+import com.btg.proposals.rule.dto.ProposalContext;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;

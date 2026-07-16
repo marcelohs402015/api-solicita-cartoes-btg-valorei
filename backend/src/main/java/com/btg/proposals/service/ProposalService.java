@@ -1,11 +1,11 @@
 package com.btg.proposals.service;
 
-import com.btg.proposals.dto.CardAccountDTO;
-import com.btg.proposals.dto.ExecutionStepDTO;
-import com.btg.proposals.dto.PropostaSummaryDTO;
-import com.btg.proposals.dto.ProposalEventDTO;
-import com.btg.proposals.dto.ProposalRequestDTO;
-import com.btg.proposals.dto.ProposalResponseDTO;
+import com.btg.proposals.dto.proposal.CardAccountDTO;
+import com.btg.proposals.dto.proposal.ExecutionStepDTO;
+import com.btg.proposals.dto.proposal.PropostaSummaryDTO;
+import com.btg.proposals.dto.proposal.ProposalEventDTO;
+import com.btg.proposals.dto.proposal.ProposalRequestDTO;
+import com.btg.proposals.dto.proposal.ProposalResponseDTO;
 import com.btg.proposals.messaging.ProposalEventPublisher;
 import com.btg.proposals.model.entity.HistoricoEntity;
 import com.btg.proposals.model.entity.PropostaEntity;
@@ -14,7 +14,7 @@ import com.btg.proposals.repository.EmailDisparoRepository;
 import com.btg.proposals.repository.HistoricoRepository;
 import com.btg.proposals.repository.PropostaRepository;
 import com.btg.proposals.rule.EligibilityRule;
-import com.btg.proposals.rule.ProposalContext;
+import com.btg.proposals.rule.dto.ProposalContext;
 import com.btg.proposals.support.AfterCommitExecutor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

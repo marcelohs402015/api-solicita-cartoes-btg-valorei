@@ -1,6 +1,6 @@
 package com.btg.proposals.controller;
 
-import com.btg.proposals.dto.QueueStatusDTO;
+import com.btg.proposals.dto.queue.QueueStatusDTO;
 import com.btg.proposals.service.QueueStatusService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

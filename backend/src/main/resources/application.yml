@@ -34,7 +34,7 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: com.btg.proposals.dto
-        spring.json.value.default.type: com.btg.proposals.dto.ProposalEventDTO
+        spring.json.value.default.type: com.btg.proposals.dto.proposal.ProposalEventDTO
 
 app:
   kafka:

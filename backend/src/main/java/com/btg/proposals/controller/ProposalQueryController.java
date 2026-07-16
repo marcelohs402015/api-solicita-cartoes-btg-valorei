@@ -1,7 +1,7 @@
 package com.btg.proposals.controller;
 
-import com.btg.proposals.dto.ExecutionStepDTO;
-import com.btg.proposals.dto.PropostaSummaryDTO;
+import com.btg.proposals.dto.proposal.ExecutionStepDTO;
+import com.btg.proposals.dto.proposal.PropostaSummaryDTO;
 import com.btg.proposals.service.ProposalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

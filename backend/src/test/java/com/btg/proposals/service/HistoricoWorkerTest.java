@@ -1,6 +1,6 @@
 package com.btg.proposals.service;
 
-import com.btg.proposals.dto.ProposalEventDTO;
+import com.btg.proposals.dto.proposal.ProposalEventDTO;
 import com.btg.proposals.model.entity.HistoricoEntity;
 import com.btg.proposals.model.enums.ProposalStatus;
 import com.btg.proposals.repository.HistoricoRepository;

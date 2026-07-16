@@ -1,7 +1,7 @@
 package com.btg.proposals.controller;
 
-import com.btg.proposals.dto.ProposalRequestDTO;
-import com.btg.proposals.dto.ProposalResponseDTO;
+import com.btg.proposals.dto.proposal.ProposalRequestDTO;
+import com.btg.proposals.dto.proposal.ProposalResponseDTO;
 import com.btg.proposals.service.ProposalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

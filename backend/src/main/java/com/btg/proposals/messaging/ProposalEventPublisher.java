@@ -1,6 +1,6 @@
 package com.btg.proposals.messaging;
 
-import com.btg.proposals.dto.ProposalEventDTO;
+import com.btg.proposals.dto.proposal.ProposalEventDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;

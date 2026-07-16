@@ -2,6 +2,8 @@ package com.btg.proposals.rule;
 
 import com.btg.proposals.model.enums.BenefitType;
 import com.btg.proposals.model.enums.OfferType;
+import com.btg.proposals.rule.dto.ProposalContext;
+import com.btg.proposals.rule.impl.OfferFinancialEligibilityRule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

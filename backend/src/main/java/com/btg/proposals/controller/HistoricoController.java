@@ -1,6 +1,6 @@
 package com.btg.proposals.controller;
 
-import com.btg.proposals.dto.HistoricoDTO;
+import com.btg.proposals.dto.historico.HistoricoDTO;
 import com.btg.proposals.service.HistoricoWorker;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
